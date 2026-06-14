@@ -54,6 +54,24 @@ const PROPOSALS = [
   }
 ];
 
+function normalizeProposal(proposal) {
+  const targetSummary = proposal?.target_segment_summary || {};
+  return {
+    ...proposal,
+    id: proposal?.id ?? Date.now(),
+    campaign_name: proposal?.campaign_name || proposal?.title || proposal?.name || "Untitled Campaign",
+    selected_channel: proposal?.selected_channel || proposal?.channel || "WHATSAPP",
+    target_reasoning: proposal?.target_reasoning || proposal?.reasoning || "Manual campaign proposal.",
+    generated_copy: proposal?.generated_copy || proposal?.copy || "",
+    status: proposal?.status || "DRAFT",
+    targeting:
+      proposal?.targeting ||
+      targetSummary.title ||
+      targetSummary.rule ||
+      "Audience defined by backend proposal data",
+  };
+}
+
 const SPEC_GRID = [
   {
     icon: <Shield size={20} />,
@@ -625,62 +643,8 @@ function ProposalCard({ proposal, onApprove, onDiscard }) {
 
 // ─── Retailer Event Copilot ──────────────────────────────────────────
 
-function RetailerCopilot() {
-  // 🧠 Initialize the state directly with your local list so something is visible immediately
-  const [proposals, setProposals] = useState(PROPOSALS);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await api.get("/api/campaigns/v2/proposals");
-        
-        // 🧠 Check if the backend actually returned data
-        if (response.data && response.data.length > 0) {
-          setProposals(
-            response.data.map((proposal) => ({
-              ...proposal,
-              targeting:
-                proposal.targeting ||
-                proposal.target_segment_summary?.title ||
-                proposal.target_segment_summary?.rule ||
-                "Audience defined by backend proposal data",
-            }))
-          );
-        } else {
-          // 🧠 Fallback to local proposals if backend returns an empty array
-          console.log("Backend returned 0 proposals. Displaying pre-seeded local strategy assets.");
-          setProposals(PROPOSALS);
-        }
-      } catch (error) {
-        console.error("Failed to load proposals from backend, using local fallbacks.", error);
-        // 🧠 Fallback if the network or endpoint errors out entirely
-        setProposals(PROPOSALS);
-      }
-
-
-      const handleManualProposalAdded = (newCard) => {
-    setProposals((prevProposals) => [newCard, ...prevProposals]);
-      };
-
-
-      const handleDiscardProposal = async (proposalId) => {
-        try {
-    // 1. Send the DELETE command across the network bridge to the database
-          await api.delete(`/api/campaigns/v2/proposals/${proposalId}`);
-    
-    // 2. Clear it from local React layout state array upon server validation success
-          setProposals((prevProposals) => prevProposals.filter((p) => p.id !== proposalId));
-    
-          console.log(`Successfully scrubbed proposal ${proposalId} from persistence.`);
-        } catch (error) {
-          console.error("Failed to sync discard parameter execution to database engine:", error);
-          alert("Failed to drop campaign record from backend tables.");
-        }
-      };
-    };
-
-    load();
-  }, []);
+function RetailerCopilot({ proposals = PROPOSALS, onDiscardProposal }) {
+  const visibleProposals = proposals.length > 0 ? proposals : PROPOSALS;
 
   return (
     <section className="relative py-24 bg-[#0B0706]">
@@ -727,11 +691,14 @@ function RetailerCopilot() {
                 GROQ WORKER ACTIVE
               </span>
             </div>
-            {proposals.map(p => (
+            {visibleProposals.map(p => (
               <ProposalCard key={p.id} proposal={p} 
-              onDiscard={(discardedId) => {
-              setProposals((prev) => prev.filter(item => item.id !== discardedId));
-            }}/>
+                onDiscard={(discardedId) => {
+                  if (typeof onDiscardProposal === "function") {
+                    onDiscardProposal(discardedId);
+                  }
+                }}
+              />
             ))}
           </div>
         </div>
@@ -793,20 +760,8 @@ const handleFormSubmit = async (e) => {
       throw new Error("Empty execution payload returned from the network middleware.");
     }
     
-    // 🧠 Map the backend response keys to match what your expanded <ProposalCard /> templates expect
-    const newlyCreatedCard = {
-      id: responseData.id || Date.now(),
-      title: responseData.campaign_name || formData.name,
-      channel: responseData.selected_channel || formData.channel || "whatsapp",
-      targeting: `Min Spend: ₹${formData.min_spend || '0'} | Dormancy: ${formData.inactive_days || '0'} Days`,
-      reasoning: responseData.target_reasoning || "Manually drafted customer segment marketing protocol.",
-      copy: responseData.generated_copy || formData.message_template,
-      status: responseData.status || 'DRAFT'
-    };
-
-    // ⚡ THE FIX: Pass the newly built card up to the parent layer instead of calling setProposals here
     if (typeof onProposalCreated === "function") {
-      onProposalCreated(newlyCreatedCard);
+      onProposalCreated(responseData);
     }
     
     if (typeof setIsModalOpen === "function") setIsModalOpen(false);
@@ -922,7 +877,19 @@ const handleFormSubmit = async (e) => {
     </section>
   );
 }
-
+function CopilotPageLayout() {
+  // 🧠 State is maintained high inside a parent wrapper setup or handled globally
+  // If your app runs them under a single container view, this is where the link happens:
+  return (
+    <div className="bg-[#0B0706] min-h-screen">
+      {/* 1. Renders Dashboard Listing */}
+      <RetailerCopilot />
+      
+      {/* 2. Renders Form Override (If combined in the main engine layout file) */}
+      {/* If your components are nested here, pass the handler across the scope boundary! */}
+    </div>
+  )
+}
 // ─── Spec Grid ────────────────────────────────────────────────────────
 
 function SpecGrid() {
@@ -1145,6 +1112,42 @@ function Footer() {
 
 export default function App() {
   const [active, setActive] = useState("Analytics");
+  const [proposalCards, setProposalCards] = useState(PROPOSALS.map(normalizeProposal));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProposals = async () => {
+      try {
+        const response = await api.get("/api/campaigns/v2/proposals");
+        if (!isMounted) return;
+
+        const nextProposals = Array.isArray(response.data) && response.data.length > 0
+          ? response.data.map(normalizeProposal)
+          : PROPOSALS.map(normalizeProposal);
+
+        setProposalCards(nextProposals);
+      } catch (error) {
+        console.error("Failed to load proposals from backend, using local fallbacks.", error);
+        if (isMounted) {
+          setProposalCards(PROPOSALS.map(normalizeProposal));
+        }
+      }
+    };
+
+    loadProposals();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleProposalCreated = (proposal) => {
+    setProposalCards((current) => [normalizeProposal(proposal), ...current.filter((item) => item.id !== proposal?.id)]);
+  };
+
+  const handleProposalDiscarded = (proposalId) => {
+    setProposalCards((current) => current.filter((item) => item.id !== proposalId));
+  };
 
   // Your navigation handler function
   const handleNavigation = (linkName) => {
@@ -1181,11 +1184,11 @@ export default function App() {
       </section>
 
       <section id="ai-proposer" className="scroll-mt-24">
-        <RetailerCopilot />
+        <RetailerCopilot proposals={proposalCards} onDiscardProposal={handleProposalDiscarded} />
       </section>
       
       <section id="manual-campaign" className="scroll-mt-24">
-        <ManualCampaignForge />
+        <ManualCampaignForge onProposalCreated={handleProposalCreated} />
       </section>
 
       <section id="sandbox" className="scroll-mt-24">
