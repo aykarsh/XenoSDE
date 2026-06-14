@@ -8,7 +8,7 @@ from database import SessionLocal, init_db
 from models import Customer, Order
 
 
-def seed_data():
+def seed_data(db:Session):
 
     cities = ["New York", "London", "Tokyo", "Berlin", "Paris", "Mumbai", "Sydney"]
     sources = ["Email", "Ads", "Organic", "Referral", "Social"]
@@ -71,4 +71,9 @@ def seed_data():
 
 
 if __name__ == "__main__":
-    seed_data()
+    print("Running isolated local seed script execution...")
+    standalone_db = SessionLocal()
+    try:
+        seed_data(standalone_db)
+    finally:
+        standalone_db.close()
