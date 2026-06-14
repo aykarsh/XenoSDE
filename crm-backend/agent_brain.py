@@ -9,8 +9,7 @@ from models import Customer, CampaignProposal, STATUS_SEQUENCE, RetailerEvent
 class AgentBrain:
     def __init__(self, api_key: str = None):
         # Fallback API key if not supplied in env
-        default_key = "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"
-        self.client = Groq(api_key=api_key or os.getenv("GROQ_API_KEY", default_key))
+        self.client = Groq(api_key=api_key or os.getenv("GROQ_API_KEY"))
 
     def analyze_and_propose(self, db: Session):
         # 1. Marketing Saturation Guardrail: Filter customers not contacted in last 7 days

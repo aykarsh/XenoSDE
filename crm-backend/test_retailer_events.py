@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Setup environment for testing
-os.environ["GROQ_API_KEY"] = "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"
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 from database import Base
 from models import Customer, RetailerEvent, CampaignProposal
