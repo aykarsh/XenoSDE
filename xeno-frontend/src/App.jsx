@@ -1103,11 +1103,10 @@ function SimulationTerminal() {
 
 function Footer() {
   const links = [
-    { label: "System Status", href: "/health" },
-    { label: "Database Schema", href: "#" },
+
+    { label: "Backend Deployment", href: "https://xenosde.onrender.com/docs" },
     { label: "GitHub Codebase", href: "https://github.com/aykarsh/XenoSDE" },
-    { label: "Deployment Logs", href: "#" },
-    { label: "API Security Manifesto", href: "#" },
+
   ];
   return (
     <footer className="relative pt-24 pb-10 overflow-hidden" style={{ background: "#0B0706" }}>
