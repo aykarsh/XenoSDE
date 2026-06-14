@@ -29,6 +29,29 @@ app.include_router(retailer_events.router, prefix="/api/retailer-events", tags=[
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+def configure_and_seed_database():
+    # 1. Ensure all database table configurations are initialized
+    Base.metadata.create_all(bind=engine)
+    
+    # 2. Open a temporary state session to check current record population
+    db = SessionLocal()
+    try:
+        current_customer_count = db.query(Customer).count()
+        
+        # 3. Guardrail: Only execute seeding if the system data tables are completely empty
+        if current_customer_count == 0:
+            print("💾 Database tables detected as empty. Running automatic seed generation protocols...")
+            
+            # Run your exact script logic automatically
+            seed_data()
+            
+            print("✅ Automatic pipeline seeding completed successfully!")
+        else:
+            print(f"📊 Active persistence data found ({current_customer_count} customers). Skipping automated seeding.")
+    except Exception as e:
+        print(f"⚠️ Automatic validation or seeding initialization failed: {str(e)}")
+    finally:
+        db.close()
 
 @app.get("/health")
 def health() -> dict[str, str]:
