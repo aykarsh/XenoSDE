@@ -9,8 +9,6 @@ from models import Customer, Order
 
 
 def seed_data():
-    db = SessionLocal()
-    init_db()
 
     cities = ["New York", "London", "Tokyo", "Berlin", "Paris", "Mumbai", "Sydney"]
     sources = ["Email", "Ads", "Organic", "Referral", "Social"]
@@ -70,7 +68,6 @@ def seed_data():
 
     db.commit()
     print("Seeding complete.")
-    db.close()
 
 
 if __name__ == "__main__":
