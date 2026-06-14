@@ -1,5 +1,5 @@
 // crm-frontend/src/utils/api.js or xeno-frontend/src/utils/api.js
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const api = {
   get: async (url) => {
