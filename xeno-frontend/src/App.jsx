@@ -714,13 +714,6 @@ function RetailerCopilot() {
                   px-2.5 py-1 rounded-full border border-[#C08552]/20">{evt.tag}</span>
               </div>
             ))}
-
-            {/* Add event stub */}
-            <div className="liquid-glass rounded-2xl p-5 border-dashed cursor-pointer hover:border-[#C08552]/40 transition-all duration-200
-              flex items-center gap-3 text-[#FFF8F0]/20 hover:text-[#FFF8F0]/40">
-              <span className="text-xl leading-none">+</span>
-              <span className="font-body text-xs">Add Retailer Event</span>
-            </div>
           </div>
 
           {/* Right 60% — proposal stream */}
